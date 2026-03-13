@@ -1,0 +1,132 @@
+"""Constants for Boss CLI — API endpoints, headers, and config paths."""
+
+from pathlib import Path
+
+# ── Config ──────────────────────────────────────────────────────────
+CONFIG_DIR = Path.home() / ".config" / "boss-cli"
+CREDENTIAL_FILE = CONFIG_DIR / "credential.json"
+
+# ── Base URL ────────────────────────────────────────────────────────
+BASE_URL = "https://www.zhipin.com"
+
+# ── QR Login API ────────────────────────────────────────────────────
+QR_RANDKEY_URL = "/wapi/zppassport/captcha/randkey"
+QR_CODE_URL = "/wapi/zpweixin/qrcode/getqrcode"
+QR_SCAN_URL = "/wapi/zppassport/qrcode/scan"
+QR_SCAN_LOGIN_URL = "/wapi/zppassport/qrcode/scanLogin"
+QR_DISPATCHER_URL = "/wapi/zppassport/qrcode/dispatcher"
+
+# ── Job API ─────────────────────────────────────────────────────────
+JOB_SEARCH_URL = "/wapi/zpgeek/search/joblist.json"
+JOB_RECOMMEND_URL = "/wapi/zpgeek/pc/recommend/job/list.json"
+JOB_CARD_URL = "/wapi/zpgeek/job/card.json"
+JOB_DETAIL_URL = "/wapi/zpgeek/job/detail.json"
+
+# ── Friend / Chat API ──────────────────────────────────────────────
+FRIEND_LIST_URL = "/wapi/zprelation/friend/getGeekFriendList.json"
+
+# ── Request Headers (Chrome 133, macOS) ─────────────────────────────
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/133.0.0.0 Safari/537.36"
+    ),
+    "sec-ch-ua": '"Chromium";v="133", "Not(A:Brand";v="99", "Google Chrome";v="133"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"macOS"',
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+    "Referer": f"{BASE_URL}/",
+}
+
+# ── Cookie keys required for authenticated sessions ─────────────────
+REQUIRED_COOKIES = {"wt2", "wbg"}
+
+# ── City codes ──────────────────────────────────────────────────────
+CITY_CODES: dict[str, str] = {
+    "全国": "100010000",
+    # 一线
+    "北京": "101010100",
+    "上海": "101020100",
+    "广州": "101280100",
+    "深圳": "101280600",
+    # 新一线
+    "杭州": "101210100",
+    "成都": "101270100",
+    "南京": "101190100",
+    "武汉": "101200100",
+    "西安": "101110100",
+    "苏州": "101190400",
+    "长沙": "101250100",
+    "天津": "101030100",
+    "重庆": "101040100",
+    "郑州": "101180100",
+    "东莞": "101281600",
+    "佛山": "101280800",
+    "合肥": "101220100",
+    "青岛": "101120200",
+    "宁波": "101210400",
+    "沈阳": "101070100",
+    "昆明": "101290100",
+    # 二线
+    "大连": "101070200",
+    "厦门": "101230200",
+    "珠海": "101280700",
+    "无锡": "101190200",
+    "福州": "101230100",
+    "济南": "101120100",
+    "哈尔滨": "101050100",
+    "长春": "101060100",
+    "南昌": "101240100",
+    "贵阳": "101260100",
+    "南宁": "101300100",
+    "石家庄": "101090100",
+    "太原": "101100100",
+    "兰州": "101160100",
+    "海口": "101310100",
+    "常州": "101191100",
+    "温州": "101210700",
+    "嘉兴": "101210300",
+    "徐州": "101190800",
+    # 特别行政区
+    "香港": "101320100",
+}
+
+# ── Salary filter codes ─────────────────────────────────────────────
+SALARY_CODES: dict[str, str] = {
+    "3K以下": "401",
+    "3-5K": "402",
+    "5-10K": "403",
+    "10-15K": "404",
+    "15-20K": "405",
+    "20-30K": "406",
+    "30-50K": "407",
+    "50K以上": "408",
+}
+
+# ── Experience filter codes ─────────────────────────────────────────
+EXP_CODES: dict[str, str] = {
+    "不限": "0",
+    "在校/应届": "108",
+    "1年以内": "101",
+    "1-3年": "102",
+    "3-5年": "103",
+    "5-10年": "104",
+    "10年以上": "105",
+}
+
+# ── Degree filter codes ─────────────────────────────────────────────
+DEGREE_CODES: dict[str, str] = {
+    "不限": "0",
+    "初中及以下": "209",
+    "中专/中技": "208",
+    "高中": "206",
+    "大专": "202",
+    "本科": "203",
+    "硕士": "204",
+    "博士": "205",
+}
