@@ -58,6 +58,9 @@ boss login                              # QR code login — scan with Boss app
 | Command | Description | Example |
 |---------|-------------|---------|
 | `boss search <keyword>` | Search jobs with filters | `boss search "golang" --city 杭州 --salary 20-30K` |
+| `boss show <index>` | View job #N from last search | `boss show 3` |
+| `boss detail <securityId>` | View full job details | `boss detail abc123 --json` |
+| `boss export <keyword>` | Export search results to CSV/JSON | `boss export "Python" -n 50 -o jobs.csv` |
 | `boss recommend` | Personalized recommendations | `boss recommend -p 2` |
 | `boss cities` | List supported cities | `boss cities` |
 
@@ -111,9 +114,17 @@ boss batch-greet "golang" --city 杭州 --salary 20-30K -n 10 -y
 ```bash
 boss recommend                         # Check recommendations
 boss search "Python" --city 杭州       # Search specific jobs
+boss show 1                            # View top result details
 boss applied                           # Check application status
 boss interviews                        # Check interview invitations
 boss chat                              # Check messages
+```
+
+### Export pipeline
+
+```bash
+boss export "golang" --city 杭州 --salary 20-30K -n 50 -o jobs.csv
+boss export "Python" -n 100 --format json -o jobs.json
 ```
 
 ### Profile check
@@ -132,10 +143,11 @@ boss me --json-output | jq '.name, .age, .degreeCategory'
 
 ## Anti-Detection Notes for Agents
 
-- **Do NOT parallelize requests** — built-in delays exist for account safety
+- **Do NOT parallelize requests** — built-in Gaussian jitter delays exist for account safety
+- **Use `-v` flag for debugging**: `boss -v search "Python"` shows request timing
 - **Batch greet limit**: recommend ≤ 10 greetings per session to avoid detection
+- **Cookies auto-refresh**: if ≥ 7 days old, boss-cli auto-tries browser extraction
 - **Re-login if `__zp_stoken__` expires**: run `boss logout && boss login`
-- **Respect rate limits**: the 1.5s delay in batch-greet is intentional
 
 ## Safety Notes
 
