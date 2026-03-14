@@ -47,6 +47,12 @@ def login(qrcode: bool, cookie_source: str | None) -> None:
         console.print("[red]❌ 登录失败：凭证未通过实际接口校验[/red]")
         if message:
             console.print(f"[dim]{message}[/dim]")
+        if not from_qr:
+            console.print(
+                "\n[yellow]💡 提示：浏览器运行时 Cookie 可能未写入磁盘，建议：\n"
+                "   1. 关闭浏览器后重试 boss login\n"
+                "   2. 或使用 boss login --qrcode 扫码登录[/yellow]"
+            )
         raise SystemExit(1)
 
     if qrcode:
