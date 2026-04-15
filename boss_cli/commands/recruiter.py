@@ -855,109 +855,12 @@ def recruiter_resume_download(
             console.print(f"[red]{data['error']}[/red]")
             return
 
-        # Build markdown
-        geek_detail = data.get("geekDetailInfo", data)
-        base_info = geek_detail.get("geekBaseInfo", geek_detail)
+        md_content = _build_candidate_md(data)
 
-        name = base_info.get("name", base_info.get("geekName", "candidate"))
-        gender_val = base_info.get("gender", 0)
-        gender = "男" if gender_val == 1 else "女" if gender_val == 2 else ""
-        degree = base_info.get("degreeCategory", base_info.get("degree", ""))
-        work_year = base_info.get("workYearDesc", base_info.get("workYear", ""))
-        age = base_info.get("ageDesc", base_info.get("age", ""))
-        apply_status = base_info.get("applyStatusContent", base_info.get("applyStatus", ""))
-        expect_position = base_info.get("expectPosition", "")
-        expect_city = base_info.get("expectCity", "")
-        expect_salary = base_info.get("expectSalary", base_info.get("salaryDesc", ""))
-
-        lines: list[str] = []
-        lines.append(f"# {name}")
-        lines.append("")
-
-        info_parts = [p for p in [gender, age, degree, work_year] if p]
-        if info_parts:
-            lines.append(" | ".join(info_parts))
-            lines.append("")
-
-        if apply_status:
-            lines.append(f"**求职状态:** {apply_status}")
-            lines.append("")
-
-        expect_parts = [p for p in [expect_position, expect_city, expect_salary] if p]
-        if expect_parts:
-            lines.append("## 求职期望")
-            lines.append("")
-            lines.append(" | ".join(expect_parts))
-            lines.append("")
-
-        # Work experience
-        work_exp = geek_detail.get("geekWorkExpList", base_info.get("workExpList", []))
-        if work_exp:
-            lines.append("## 工作经历")
-            lines.append("")
-            for w in work_exp:
-                company = w.get("company", w.get("companyName", ""))
-                position = w.get("positionName", w.get("position", ""))
-                time_desc = w.get("timeDesc", w.get("workTime", ""))
-                industry = w.get("industry", "")
-                desc = w.get("description", w.get("workDesc", ""))
-                header = f"### {company}"
-                if industry:
-                    header += f" ({industry})"
-                lines.append(header)
-                lines.append("")
-                if time_desc:
-                    lines.append(f"**{time_desc}** - {position}")
-                elif position:
-                    lines.append(f"**{position}**")
-                lines.append("")
-                if desc:
-                    lines.append(desc)
-                    lines.append("")
-
-        # Education
-        edu_exp = geek_detail.get("geekEduExpList", base_info.get("eduExpList", []))
-        if edu_exp:
-            lines.append("## 教育经历")
-            lines.append("")
-            for e in edu_exp:
-                school = e.get("school", e.get("schoolName", ""))
-                major_name = e.get("major", e.get("majorName", ""))
-                degree_name = e.get("degree", e.get("degreeName", ""))
-                time_desc = e.get("timeDesc", e.get("eduTime", ""))
-                header = f"### {school}"
-                if degree_name:
-                    header += f" - {degree_name}"
-                lines.append(header)
-                lines.append("")
-                parts = [p for p in [time_desc, major_name] if p]
-                if parts:
-                    lines.append(" | ".join(parts))
-                    lines.append("")
-
-        # Projects
-        project_exp = geek_detail.get("geekProjectExpList", base_info.get("projectExpList", []))
-        if project_exp:
-            lines.append("## 项目经历")
-            lines.append("")
-            for p in project_exp:
-                proj_name = p.get("projectName", p.get("name", ""))
-                role = p.get("roleName", p.get("role", ""))
-                time_desc = p.get("timeDesc", p.get("projectTime", ""))
-                desc = p.get("description", p.get("projectDesc", ""))
-                header = f"### {proj_name}"
-                if role:
-                    header += f" ({role})"
-                lines.append(header)
-                lines.append("")
-                if time_desc:
-                    lines.append(f"**{time_desc}**")
-                    lines.append("")
-                if desc:
-                    lines.append(desc)
-                    lines.append("")
-
-        md_content = "\n".join(lines).rstrip() + "\n"
+        # Determine output filename from name in data
+        geek_detail = data.get("geekDetailInfo") or data
+        base_info = geek_detail.get("geekBaseInfo") or geek_detail if isinstance(geek_detail, dict) else {}
+        name = base_info.get("name", "candidate") if isinstance(base_info, dict) else "candidate"
 
         # Write to file or stdout
         if output_file is None:
@@ -1280,7 +1183,15 @@ def _get_cache_dir(output_dir: str | None) -> Path:
 
 
 def _build_candidate_md(data: dict) -> str:
-    """Build Markdown resume content from geek detail API response."""
+    """Build Markdown resume content from geek detail API response (get_boss_view_geek).
+
+    The API returns a nested structure:
+      geekDetailInfo.geekBaseInfo      — personal info
+      geekDetailInfo.geekExpPosList    — expected positions/salary/city
+      geekDetailInfo.geekWorkExpList   — work history
+      geekDetailInfo.geekEduExpList    — education
+      geekDetailInfo.geekProjExpList   — project experience
+    """
     if not data:
         return "# (简历数据为空)\n"
     geek_detail = data.get("geekDetailInfo") or data
@@ -1293,13 +1204,16 @@ def _build_candidate_md(data: dict) -> str:
     name = base_info.get("name", base_info.get("geekName", "candidate"))
     gender_val = base_info.get("gender", 0)
     gender = "男" if gender_val == 1 else "女" if gender_val == 2 else ""
-    degree = base_info.get("degreeCategory", base_info.get("degree", ""))
-    work_year = base_info.get("workYearDesc", base_info.get("workYear", ""))
-    age = base_info.get("ageDesc", base_info.get("age", ""))
-    apply_status = base_info.get("applyStatusContent", base_info.get("applyStatus", ""))
-    expect_position = base_info.get("expectPosition", "")
-    expect_city = base_info.get("expectCity", "")
-    expect_salary = base_info.get("expectSalary", base_info.get("salaryDesc", ""))
+    # degreeCategory is the text label ("本科"); degree is the numeric code
+    degree = base_info.get("degreeCategory") or ""
+    if not degree:
+        d = base_info.get("degree", "")
+        degree = str(d) if d and not isinstance(d, int) else ""
+    work_year = base_info.get("workYearsDesc", base_info.get("workYearDesc", ""))
+    age = base_info.get("ageDesc", "")
+    apply_status = base_info.get("applyStatusContent", "")
+    active_time = base_info.get("activeTimeDesc", "")
+    user_desc = base_info.get("userDescription", "")
 
     lines: list[str] = []
     lines.append(f"# {name}")
@@ -1310,34 +1224,63 @@ def _build_candidate_md(data: dict) -> str:
         lines.append(" | ".join(info_parts))
         lines.append("")
 
+    status_parts = []
     if apply_status:
-        lines.append(f"**求职状态:** {apply_status}")
+        status_parts.append(f"**求职状态:** {apply_status}")
+    if active_time:
+        status_parts.append(f"**活跃时间:** {active_time}")
+    for sp in status_parts:
+        lines.append(sp)
+    if status_parts:
         lines.append("")
 
-    expect_parts = [p for p in [expect_position, expect_city, expect_salary] if p]
-    if expect_parts:
+    # Expected positions (may have multiple)
+    exp_pos_list = geek_detail.get("geekExpPosList", [])
+    if exp_pos_list:
         lines.append("## 求职期望")
         lines.append("")
-        lines.append(" | ".join(expect_parts))
+        for ep in exp_pos_list:
+            pos_name = ep.get("positionName", "")
+            city_name = ep.get("locationName", "")
+            salary = ep.get("salaryDesc", "")
+            industry_desc = ep.get("industryDesc", "")
+            parts = [p for p in [pos_name, city_name, salary, industry_desc] if p]
+            if parts:
+                lines.append(" | ".join(parts))
         lines.append("")
 
-    work_exp = geek_detail.get("geekWorkExpList", base_info.get("workExpList", []))
+    if user_desc:
+        lines.append("## 个人简介")
+        lines.append("")
+        lines.append(user_desc)
+        lines.append("")
+
+    work_exp = geek_detail.get("geekWorkExpList", [])
     if work_exp:
         lines.append("## 工作经历")
         lines.append("")
         for w in work_exp:
-            company = w.get("company", w.get("companyName", ""))
-            position = w.get("positionName", w.get("position", ""))
-            time_desc = w.get("timeDesc", w.get("workTime", ""))
-            industry = w.get("industry", "")
-            desc = w.get("description", w.get("workDesc", ""))
+            company = w.get("company", "")
+            position = w.get("positionName", "")
+            # Build time range from startYearMonStr/endYearMonStr
+            start = w.get("startYearMonStr", "")
+            end = w.get("endYearMonStr", "")
+            if start and end:
+                time_desc = f"{start}-{end}"
+            elif start:
+                time_desc = start
+            else:
+                time_desc = w.get("workYearDesc", "")
+            dept = w.get("department", "")
+            # Work description is in 'responsibility' field
+            desc = w.get("responsibility", "")
             header = f"### {company}"
-            if industry:
-                header += f" ({industry})"
+            if dept:
+                header += f" · {dept}"
             lines.append(header)
             lines.append("")
-            if time_desc:
-                lines.append(f"**{time_desc}** - {position}")
+            if time_desc and position:
+                lines.append(f"**{time_desc}** | {position}")
             elif position:
                 lines.append(f"**{position}**")
             lines.append("")
@@ -1345,18 +1288,25 @@ def _build_candidate_md(data: dict) -> str:
                 lines.append(desc)
                 lines.append("")
 
-    edu_exp = geek_detail.get("geekEduExpList", base_info.get("eduExpList", []))
+    edu_exp = geek_detail.get("geekEduExpList", [])
     if edu_exp:
         lines.append("## 教育经历")
         lines.append("")
         for e in edu_exp:
-            school = e.get("school", e.get("schoolName", ""))
-            major_name = e.get("major", e.get("majorName", ""))
-            degree_name = e.get("degree", e.get("degreeName", ""))
-            time_desc = e.get("timeDesc", e.get("eduTime", ""))
+            school = e.get("school", "")
+            major_name = e.get("major", "")
+            # degreeName is the text label; degree is numeric code
+            degree_name = e.get("degreeName") or ""
+            if not degree_name:
+                d = e.get("degree", "")
+                degree_name = str(d) if d and not isinstance(d, int) else ""
+            # Build time from startDateDesc/endDateDesc
+            start = e.get("startDateDesc", "")
+            end = e.get("endDateDesc", "")
+            time_desc = f"{start}-{end}" if start and end else start or end
             header = f"### {school}"
             if degree_name:
-                header += f" - {degree_name}"
+                header += f" — {degree_name}"
             lines.append(header)
             lines.append("")
             parts = [p for p in [time_desc, major_name] if p]
@@ -1364,15 +1314,17 @@ def _build_candidate_md(data: dict) -> str:
                 lines.append(" | ".join(parts))
                 lines.append("")
 
-    project_exp = geek_detail.get("geekProjectExpList", base_info.get("projectExpList", []))
+    project_exp = geek_detail.get("geekProjExpList", [])
     if project_exp:
         lines.append("## 项目经历")
         lines.append("")
         for p in project_exp:
             proj_name = p.get("projectName", p.get("name", ""))
             role = p.get("roleName", p.get("role", ""))
-            time_desc = p.get("timeDesc", p.get("projectTime", ""))
-            desc = p.get("description", p.get("projectDesc", ""))
+            start = p.get("startYearMonStr", "")
+            end = p.get("endYearMonStr", "")
+            time_desc = f"{start}-{end}" if start and end else start or end
+            desc = p.get("responsibility", p.get("description", ""))
             header = f"### {proj_name}"
             if role:
                 header += f" ({role})"
@@ -1511,8 +1463,8 @@ def _sync_job(
     }
 
 
-@recruiter.command("sync")
-@click.option("--job", "enc_job_id", default="", help="只同步指定岗位 encryptJobId（默认同步所有在线岗位）")
+@recruiter.command("resume-sync")
+@click.argument("encrypt_job_id", default="", required=False)
 @click.option(
     "--output-dir", "output_dir", default=None,
     help="缓存根目录（默认: $BOSS_CACHE_DIR 或 ~/.boss-cli/cache/）",
@@ -1520,8 +1472,8 @@ def _sync_job(
 @click.option("--force", is_flag=True, help="强制全量重拉（忽略24小时冷却，覆盖已有文件）")
 @click.option("--dry-run", is_flag=True, help="只打印将执行的操作，不实际写文件")
 @structured_output_options
-def recruiter_sync(
-    enc_job_id: str,
+def recruiter_resume_sync(
+    encrypt_job_id: str,
     output_dir: str | None,
     force: bool,
     dry_run: bool,
@@ -1529,6 +1481,8 @@ def recruiter_sync(
     as_yaml: bool,
 ) -> None:
     """将候选人简历缓存到本地 Markdown 文件（增量更新）
+
+    不指定 ENCRYPT_JOB_ID 时同步所有在线岗位。
 
     \b
     目录结构:
@@ -1552,10 +1506,10 @@ def recruiter_sync(
             # Get job list
             all_jobs = client.get_boss_chatted_jobs()
 
-            if enc_job_id:
-                jobs = [j for j in all_jobs if j.get("encryptJobId") == enc_job_id]
+            if encrypt_job_id:
+                jobs = [j for j in all_jobs if j.get("encryptJobId") == encrypt_job_id]
                 if not jobs:
-                    console.print(f"[red]未找到岗位: {enc_job_id}[/red]")
+                    console.print(f"[red]未找到岗位: {encrypt_job_id}[/red]")
                     raise SystemExit(1)
             else:
                 jobs = [j for j in all_jobs if j.get("jobOnlineStatus") == 1]

@@ -196,20 +196,23 @@ The most important recruiter workflow for AI analysis. Syncs candidate resumes t
 
 ```bash
 # Sync all online jobs (incremental — skips already-cached candidates)
-boss recruiter sync --output-dir /path/to/workspace/candidates
+boss recruiter resume-sync
 
 # Sync a specific job only
-boss recruiter sync --job <encryptJobId> --output-dir /path/to/workspace/candidates
+boss recruiter resume-sync <encryptJobId>
+
+# Specify output directory
+boss recruiter resume-sync <encryptJobId> --output-dir /path/to/workspace/candidates
 
 # Force full re-fetch (ignore 24h cooldown)
-boss recruiter sync --output-dir /path/to/candidates --force
+boss recruiter resume-sync --force
 
 # Preview without writing files
-boss recruiter sync --dry-run
+boss recruiter resume-sync --dry-run
 
 # Set default cache dir via env var (openclaw workspace recommended)
 export BOSS_CACHE_DIR=/path/to/workspace/candidates
-boss recruiter sync
+boss recruiter resume-sync
 ```
 
 **Cache directory structure:**
@@ -275,7 +278,7 @@ boss recruiter jobs --json | jq '.data[] | select(.jobOnlineStatus==1) | {jobNam
 
 # Step 2: Sync candidates to local cache
 export BOSS_CACHE_DIR=./candidates
-boss recruiter sync
+boss recruiter resume-sync
 
 # Step 3: Analyze from local files (no API needed)
 ls ./candidates/{encrypt_job_id}/        # List candidate files
