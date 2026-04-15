@@ -1364,25 +1364,6 @@ def _sync_job(
     existing_uids: set[str] = set(existing_meta.get("candidates", []))
     archived_uids: set[str] = set(existing_meta.get("archived_candidates", []))
 
-    # Check 24-hour cooldown (skip if not forced)
-    last_sync = existing_meta.get("last_sync_at")
-    if last_sync and not force:
-        try:
-            last_dt = datetime.fromisoformat(last_sync)
-            elapsed_h = (datetime.now(timezone.utc) - last_dt).total_seconds() / 3600
-            if elapsed_h < 24:
-                return {
-                    "job_name": job_name,
-                    "enc_job_id": enc_job_id,
-                    "skipped": True,
-                    "reason": f"上次同步于 {last_sync}，距今 {elapsed_h:.1f}h（< 24h），使用 --force 强制更新",
-                    "new": 0,
-                    "archived": 0,
-                    "total": len(existing_uids),
-                }
-        except Exception:
-            pass
-
     # Fetch recommend list
     rec_data = client.get_boss_recommend_geeks(enc_job_id=enc_job_id)
     friend_list = rec_data.get("friendList", [])

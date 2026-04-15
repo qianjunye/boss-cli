@@ -311,3 +311,20 @@ cat ./candidates/{encrypt_job_id}/{uid}.md    # Read one resume
 - If auth fails, ask the user to re-login via `boss login`.
 - Agent should treat cookie values as secrets (do not echo to stdout).
 - Built-in rate-limit delay protects accounts; do not bypass it.
+
+## 候选人缓存策略说明（Agent 必读）
+
+### 300人上限问题
+BOSS直聘推荐列表每次最多返回 **300 人**，翻页返回相同数据（无效翻页）。
+这是平台硬限制，无法突破。
+
+### 正确的增量同步策略
+- 推荐列表会**动态变化**：新候选人投递后会出现，旧的会消失
+- `resume-sync` 的增量逻辑：将新出现的 uid 与本地 `_meta.json` 中的 `candidates` 列表对比
+- 消失的候选人标记为 `archived`，简历文件**保留不删除**
+- 定期同步可以积累超过300人的历史候选人库
+
+### 建议同步频率
+- 热门岗位（候选人多）：每天同步 1 次
+- 一般岗位：每 2-3 天同步 1 次
+- 使用 `--force` 强制覆盖时，会重新拉取当前推荐列表中的所有人
