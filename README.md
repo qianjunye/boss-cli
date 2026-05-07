@@ -26,16 +26,17 @@ cd boss-cli && uv sync
 ```bash
 boss login                       # auto-extract cookies from local browser
 boss login --cookie-source chrome
-boss login --qrcode              # QR login + CDP stoken hydration (see below)
+boss login --cdp                 # cookies from running Chrome (no QR needed) — recommended
+boss login --qrcode              # QR scan fallback
 boss status
 boss logout
 ```
 
-### QR login + CDP `__zp_stoken__` hydration
+### `boss login --cdp` (recommended)
 
-Recruiter communication APIs (reply / inbox / interview…) require `__zp_stoken__`, which is only minted in a real browser. Recommended flow:
+If you've already logged into zhipin.com in a Chrome started with `--remote-debugging-port=9222`, this command reads cookies directly from that browser — **no QR scan**.
 
-1. Launch a real Chrome with remote debugging:
+1. Launch Chrome with remote debugging:
 
    ```bash
    # macOS
@@ -45,9 +46,11 @@ Recruiter communication APIs (reply / inbox / interview…) require `__zp_stoken
    google-chrome --remote-debugging-port=9222 --user-data-dir=/tmp/boss-chrome
    ```
 
-2. Log into `https://www.zhipin.com` (recruiter account) inside that Chrome.
-3. `pip install websocket-client` (one-time, optional dependency).
-4. `boss login --qrcode` — first tries CDP (port 9222), falls back to Camoufox if Chrome is not running.
+2. Log into `https://www.zhipin.com` in that Chrome.
+3. `pip install websocket-client` (one-time).
+4. `boss login --cdp` (or `--cdp --cdp-port 9333` for a custom port).
+
+Required cookies: `wt2` / `wbg` / `zp_at`. `__zp_stoken__` is treated as optional — it's JS-generated and often unobtainable; recruiter APIs (recommend / inbox / chat / resume-sync) work without it. A few endpoints (search, some chat actions) may return `环境异常` when stoken is missing.
 
 ## Recruiter commands
 

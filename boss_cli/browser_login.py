@@ -229,6 +229,100 @@ def _hydrate_stoken_via_browser(cookies: dict[str, str]) -> dict[str, str]:
     return result
 
 
+def cdp_login(debug_port: int = 9222, wait_seconds: float = 4.0) -> Credential:
+    """Harvest zhipin.com cookies directly from a running Chrome via CDP.
+
+    Assumes the user is already logged into zhipin.com in a Chrome started
+    with ``--remote-debugging-port=<debug_port>``. No QR scan needed.
+    Saves and returns the credential. Raises ``BrowserLoginUnavailable``
+    if Chrome/CDP is not reachable or the user is not logged in.
+    """
+    try:
+        import websocket  # noqa: F401
+    except ImportError as exc:
+        raise BrowserLoginUnavailable(
+            "websocket-client 未安装。安装: pip install websocket-client"
+        ) from exc
+
+    cookies = _hydrate_stoken_via_cdp(debug_port=debug_port, wait_seconds=wait_seconds)
+    if cookies is None:
+        # _hydrate_stoken_via_cdp returns None if either CDP is unreachable
+        # OR __zp_stoken__ is missing. Try a second, simpler pass that just
+        # grabs whatever cookies exist (we no longer treat stoken as required).
+        cookies = _harvest_cookies_via_cdp(debug_port=debug_port, wait_seconds=wait_seconds)
+
+    if not cookies:
+        raise BrowserLoginUnavailable(
+            f"未能通过 CDP 获取 cookies。请确认 Chrome 已以 "
+            f"--remote-debugging-port={debug_port} 启动，并已登录 zhipin.com"
+        )
+
+    cred = Credential(cookies=cookies)
+    if not cred.has_required_cookies:
+        missing = ", ".join(cred.missing_required_cookies)
+        raise BrowserLoginUnavailable(
+            f"CDP 已连接但缺少必要 cookies ({missing})。请在该 Chrome 中登录 zhipin.com 后重试"
+        )
+
+    save_credential(cred)
+    return cred
+
+
+def _harvest_cookies_via_cdp(
+    debug_port: int = 9222,
+    wait_seconds: float = 4.0,
+) -> dict[str, str] | None:
+    """Like _hydrate_stoken_via_cdp but returns whatever cookies exist
+    (does not require __zp_stoken__)."""
+    try:
+        import websocket  # type: ignore[import]
+    except ImportError:
+        return None
+
+    try:
+        import urllib.request
+        with urllib.request.urlopen(
+            f"http://127.0.0.1:{debug_port}/json", timeout=3
+        ) as resp:
+            tabs = json.loads(resp.read())
+    except Exception as exc:
+        logger.debug("Chrome CDP not available on port %d: %s", debug_port, exc)
+        return None
+
+    if not tabs:
+        return None
+    ws_url = tabs[0].get("webSocketDebuggerUrl")
+    if not ws_url:
+        return None
+
+    try:
+        ws = websocket.create_connection(ws_url, timeout=10)
+        ws.send(json.dumps({
+            "id": 1,
+            "method": "Page.navigate",
+            "params": {"url": f"{BASE_URL}/"},
+        }))
+        ws.recv()
+        time.sleep(wait_seconds)
+        ws.send(json.dumps({"id": 2, "method": "Network.getAllCookies"}))
+        result = json.loads(ws.recv())
+        ws.close()
+    except Exception as exc:
+        logger.warning("CDP WebSocket error: %s", exc)
+        return None
+
+    cookies: dict[str, str] = {}
+    for c in result.get("result", {}).get("cookies", []):
+        domain = c.get("domain", "")
+        name = c.get("name")
+        value = c.get("value")
+        if not isinstance(name, str) or not isinstance(value, str):
+            continue
+        if any(domain.endswith(d) for d in BROWSER_EXPORT_DOMAINS):
+            cookies[name] = value
+    return cookies or None
+
+
 def browser_qr_login(
     *,
     on_status: callable | None = None,

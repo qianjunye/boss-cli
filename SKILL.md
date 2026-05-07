@@ -58,11 +58,11 @@ Verify with:
 boss status
 ```
 
-### QR login + CDP stoken hydration (recommended for recruiter mode)
+### `boss login --cdp` (recommended for recruiter mode)
 
-Communication commands (reply/greet/inbox/interview…) require `__zp_stoken__`, which Boss only generates in a real browser. Pure QR login cannot obtain it. The recommended flow:
+If the user is already logged into zhipin.com in a Chrome they started with `--remote-debugging-port=9222`, **no QR scan is needed** — `--cdp` reads cookies directly from that browser session.
 
-1. Launch a real Chrome with the remote-debugging port **before** running `boss login --qrcode`:
+1. Launch Chrome with remote debugging:
 
    ```bash
    # macOS
@@ -74,21 +74,19 @@ Communication commands (reply/greet/inbox/interview…) require `__zp_stoken__`,
    ```
 
 2. In that Chrome, log into `https://www.zhipin.com` (recruiter account).
-
-3. Run:
+3. `pip install websocket-client` (one-time, optional dependency).
+4. Run:
 
    ```bash
-   boss login --qrcode
+   boss login --cdp                  # default port 9222
+   boss login --cdp --cdp-port 9333  # custom port
    ```
 
-   The login flow will:
-   - Complete QR login via HTTP to get `wt2`, `wbg`, `zp_at`.
-   - **Try CDP first** (port 9222) — harvests `__zp_stoken__` from the real Chrome session (most reliable).
-   - Fall back to Camoufox headless browser if CDP is unavailable.
+The required cookies are `wt2`, `wbg`, `zp_at`. **`__zp_stoken__` is no longer required** — it's JS-generated and frequently unobtainable; recruiter APIs like recommend / inbox / chat work without it. Search and some communication endpoints may return `环境异常` when stoken is missing.
 
-4. Requires the `websocket-client` Python package: `pip install websocket-client`. Silently skipped if absent or Chrome is not running on 9222.
+### `boss login --qrcode` (fallback)
 
-5. Troubleshoot: if both CDP and Camoufox fail, relaunch Chrome with `--remote-debugging-port=9222` and ensure you're logged into zhipin.com in that Chrome window, then rerun `boss login --qrcode`.
+QR scan via the Boss app. Cannot obtain `__zp_stoken__` either, so the result is equivalent to `--cdp` minus stoken. Use when CDP is not available.
 
 ### Step 2: Handle common auth issues
 
